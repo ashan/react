@@ -2,25 +2,67 @@ var React = require('react');
 var ReactFire = require('reactfire');
 var Firebase = require('firebase');
 var Header = require('./header');
+var List = require('./list');
 
 var rootUrl = 'https://ashan-todos.firebaseio.com/';
 
 var App = React.createClass({
 	mixins: [ReactFire],
+	getInitialState: function(){
+		return{
+			items: {},
+			loaded: false,
+		};
+	},
 
 	componentWillMount: function(){
-		this.bindAsObject(new Firebase(rootUrl + 'items/'), 'items');
+		this.fb = new Firebase(rootUrl + 'items/');
+		// bind the firebase returned data in to 
+		// the 'items' object in our state
+		this.bindAsObject(this.fb, 'items');
+		this.fb.on('value', this.handleDataLoaded);
 	},
 
 	render: function() {
-		return <div className="row ">
+		return <div className="row panel panel-default">
 			<div className="col-md-8 col-md-offset-2">
 				<h2 className="text-center">
 					To-Do List
 				</h2>
-				<Header/>
+				<Header itemsStore={this.firebaseRefs.items}/>
+				<hr />
+				<div className={this.state.loaded ? 'content loaded' : 'content'}>
+					<List items={this.state.items}/>
+				</div>
+				{this.deleteButton()}
 			</div>
 		</div>
+	},
+
+	handleDataLoaded: function(){
+		this.setState({loaded: true});
+	},
+	deleteButton: function(){
+		if(!this.state.loaded){
+			return
+		}else{
+			return <div className="text-center clear-complete">
+				<hr/>
+				<button
+					type="button"
+					className="btn btn-default"
+					onClick={this.onDeleteDoneClick}>
+					Clear Complete
+				</button>
+			</div>
+		}
+	},
+	onDeleteDoneClick: function(){
+		for(var key in this.state.items){
+			if(this.state.items[key].done === true){
+				this.fb.child(key).remove();
+			}
+		}
 	}
 });
 
